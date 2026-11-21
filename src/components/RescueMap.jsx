@@ -106,6 +106,7 @@ const RescueMap = ({
   const estimatedTimeMins = Math.max(5, Math.round(totalMissionKm * 3.2 + 8));
 
   const isInterCityDistance = driverToDonorDist > 50;
+  const isOutOfServiceRadius = driverToDonorDist > 15 || donorToNgoDist > 15;
 
   // Calculate current interpolated position based on navProgress (0.0 to 1.0)
   // 0.0 -> 0.45 = Driver moving to Donor
@@ -276,6 +277,21 @@ const RescueMap = ({
               `);
 
             driverMarkerRef.current = marker;
+
+            // 15 km Rider Delivery Service Radius Circle
+            const radiusCircle = L.circle([driver.lat, driver.lng], {
+              radius: 15000, // 15 km in meters
+              color: '#10B981',
+              fillColor: '#D1FAE5',
+              fillOpacity: 0.1,
+              weight: 2,
+              dashArray: '6, 6',
+            }).addTo(mapInstance);
+
+            radiusCircle.bindTooltip('🛵 15 km Active Delivery Zone', {
+              permanent: false,
+              direction: 'top',
+            });
 
             // Route: Driver -> Donor (Dashed Orange Line)
             L.polyline(
@@ -601,6 +617,53 @@ const RescueMap = ({
         </div>
       )}
 
+      {/* 15 km Delivery Service Radius Notice: "We are coming to your area soon!" */}
+      {isOutOfServiceRadius && !isInterCityDistance && (
+        <div
+          style={{
+            backgroundColor: '#EFF6FF',
+            border: '1.5px solid #93C5FD',
+            borderBottom: 'none',
+            padding: '0.65rem 1rem',
+            fontSize: '0.85rem',
+            color: '#1E40AF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.25rem' }}>🚀</span>
+            <div>
+              <strong>Outside 15 km Delivery Radius ({Math.max(driverToDonorDist, totalMissionKm)} km away):</strong>{' '}
+              <span style={{ color: '#1D4ED8', fontWeight: 800 }}>We are coming to your area soon!</span>
+              <span style={{ display: 'block', fontSize: '0.75rem', color: '#3B82F6', marginTop: '1px' }}>
+                Standard rider dispatch operates within a 15 km service perimeter. BhojanSetu fleet coverage is expanding to your neighborhood!
+              </span>
+            </div>
+          </div>
+          {onSnapNearKitchen && (
+            <button
+              type="button"
+              onClick={onSnapNearKitchen}
+              className="btn btn-sm"
+              style={{
+                backgroundColor: '#2563EB',
+                color: '#FFFFFF',
+                fontWeight: 700,
+                border: 'none',
+                padding: '0.25rem 0.65rem',
+                fontSize: '0.75rem',
+              }}
+            >
+              ⚡ Test Within 15 km (2.2 km away)
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Inter-City Distance Banner Alert inside map if > 50 km */}
       {isInterCityDistance && (
         <div
@@ -710,6 +773,23 @@ const RescueMap = ({
               </span>
             </div>
           )}
+
+          <div
+            className="metric-chip"
+            style={{
+              color: isOutOfServiceRadius ? '#1E40AF' : '#047857',
+              backgroundColor: isOutOfServiceRadius ? '#EFF6FF' : '#ECFDF5',
+              padding: '0.15rem 0.5rem',
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: 700,
+            }}
+          >
+            <span>
+              {isOutOfServiceRadius
+                ? '🚀 Outside 15 km (Coming Soon!)'
+                : '✓ Inside 15 km Delivery Zone'}
+            </span>
+          </div>
         </div>
       </div>
     </div>

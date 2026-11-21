@@ -63,6 +63,19 @@ const FoodCard = ({ listing, onClaim, claimingId }) => {
               {listing.donor?.city ? `, ${listing.donor.city}` : ''}
             </span>
           </div>
+
+          {/* 15 km Delivery Service Radius Indicator */}
+          <div className="meta-row" style={{ fontSize: '0.78rem', marginTop: '0.2rem' }}>
+            {listing.isOutOfRadius ? (
+              <span style={{ color: '#2563EB', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                🚀 Outside 15 km • We are coming to your area soon!
+              </span>
+            ) : (
+              <span style={{ color: '#047857', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                🛵 Within 15 km Rider Delivery Zone
+              </span>
+            )}
+          </div>
         </div>
 
         {listing.notes && (

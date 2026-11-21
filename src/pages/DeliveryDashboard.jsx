@@ -333,6 +333,21 @@ const DeliveryDashboard = () => {
     }
   };
 
+  const calcDistanceKm = (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Number((R * c).toFixed(1));
+  };
+
   const totalDeliveredMeals = history.reduce((acc, curr) => acc + curr.quantityServings, 0);
 
   // Inter-city check for first mission
@@ -615,6 +630,15 @@ const DeliveryDashboard = () => {
                   const selectedMethod = paymentMethods[mission._id] || 'UPI';
                   const currentPhotoPreview = photoPreviews[mission._id];
 
+                  // 15 km Radius Check
+                  const distToPickup = calcDistanceKm(
+                    liveLocation.latitude,
+                    liveLocation.longitude,
+                    mission.pickupCoordinates?.latitude,
+                    mission.pickupCoordinates?.longitude
+                  );
+                  const isBeyond15Km = distToPickup > 15;
+
                   return (
                     <div
                       key={mission._id}
@@ -725,6 +749,66 @@ const DeliveryDashboard = () => {
                           )}
                         </div>
                       </div>
+
+                      {/* 15 km Delivery Service Zone Notification: "We are coming to your area soon!" */}
+                      {isBeyond15Km ? (
+                        <div
+                          style={{
+                            backgroundColor: '#EFF6FF',
+                            border: '1.5px solid #93C5FD',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '0.85rem 1.15rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '0.75rem',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <span style={{ fontSize: '1.5rem' }}>🚀</span>
+                            <div>
+                              <strong style={{ color: '#1E40AF', fontSize: '0.925rem' }}>
+                                Outside 15 km Delivery Service Radius ({distToPickup} km away)
+                              </strong>
+                              <div style={{ color: '#1D4ED8', fontSize: '0.825rem', fontWeight: 600, marginTop: '2px' }}>
+                                We are coming to your area soon! Standard rider dispatch operates within a 15 km perimeter.
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleSnapNearDonor(mission.pickupCoordinates)}
+                            className="btn btn-sm"
+                            style={{
+                              backgroundColor: '#2563EB',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              fontWeight: 700,
+                            }}
+                          >
+                            ⚡ Simulate Inside 15 km (2.2 km)
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            backgroundColor: '#ECFDF5',
+                            border: '1px solid #A7F3D0',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '0.5rem 0.85rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            fontSize: '0.8rem',
+                            color: '#065F46',
+                            fontWeight: 600,
+                          }}
+                        >
+                          <CheckCircle2 size={14} style={{ color: '#059669' }} />
+                          <span>Within 15 km Active Delivery Radius ({distToPickup} km from kitchen) • Ready for dispatch</span>
+                        </div>
+                      )}
 
                       {/* Interactive Live Moving Rescue Map */}
                       <RescueMap

@@ -364,6 +364,22 @@ const FoodFeedPage = () => {
                 <strong>Address:</strong> {selectedListing.pickupAddress}
               </div>
             </div>
+
+            {selectedListing.isOutOfRadius && (
+              <div
+                style={{
+                  backgroundColor: '#EFF6FF',
+                  border: '1px solid #BFDBFE',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.65rem 0.85rem',
+                  fontSize: '0.825rem',
+                  color: '#1E40AF',
+                  marginTop: '0.75rem',
+                }}
+              >
+                🚀 <strong>Outside 15 km Rider Radius:</strong> We are coming to your area soon! Direct self-pickup or community volunteer collection can be coordinated with the donor.
+              </div>
+            )}
           </div>
         )}
 

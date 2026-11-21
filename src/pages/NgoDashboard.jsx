@@ -111,6 +111,21 @@ const NgoDashboard = () => {
   );
   const totalCo2PreventedKg = Math.round(totalMealsRescuedByNgo * 2.5);
 
+  const calcDistKm = (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Number((R * c).toFixed(1));
+  };
+
   const selectedMission =
     activePickups.find((m) => m._id === selectedMapMissionId) || activePickups[0];
 
@@ -353,6 +368,48 @@ const NgoDashboard = () => {
                                       Live GPS: {driver.currentLocation?.latitude?.toFixed(4)},{' '}
                                       {driver.currentLocation?.longitude?.toFixed(4)}
                                     </div>
+                                    {/* 15 km Radius Notice */}
+                                    {(() => {
+                                      const dist = driver.currentLocation?.latitude
+                                        ? calcDistKm(
+                                            driver.currentLocation.latitude,
+                                            driver.currentLocation.longitude,
+                                            item.pickupCoordinates?.latitude,
+                                            item.pickupCoordinates?.longitude
+                                          )
+                                        : 0;
+                                      return dist > 15 ? (
+                                        <div
+                                          style={{
+                                            backgroundColor: '#EFF6FF',
+                                            border: '1px solid #BFDBFE',
+                                            color: '#1E40AF',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 700,
+                                            padding: '0.2rem 0.5rem',
+                                            borderRadius: 'var(--radius-sm)',
+                                            marginTop: '0.25rem',
+                                          }}
+                                        >
+                                          🚀 Outside 15 km Radius ({dist} km) — We are coming to your area soon!
+                                        </div>
+                                      ) : (
+                                        <div
+                                          style={{
+                                            backgroundColor: '#ECFDF5',
+                                            border: '1px solid #A7F3D0',
+                                            color: '#065F46',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 700,
+                                            padding: '0.2rem 0.5rem',
+                                            borderRadius: 'var(--radius-sm)',
+                                            marginTop: '0.25rem',
+                                          }}
+                                        >
+                                          ✓ Within 15 km Delivery Radius ({dist} km)
+                                        </div>
+                                      );
+                                    })()}
                                   </div>
                                 ) : (
                                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
