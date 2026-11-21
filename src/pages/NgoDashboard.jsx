@@ -20,6 +20,9 @@ import {
   KeyRound,
   ShieldCheck,
   MessageSquare,
+  Smartphone,
+  Send,
+  Loader2,
 } from 'lucide-react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
@@ -38,6 +41,63 @@ const NgoDashboard = () => {
   const [selectedMapMissionId, setSelectedMapMissionId] = useState(null);
   const [customNgoCoords, setCustomNgoCoords] = useState(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [resendingSmsId, setResendingSmsId] = useState(null);
+  const [smsToast, setSmsToast] = useState('');
+
+  // Helper to cleanly format phone number without duplicate +91 +91
+  const formatPhone = (rawPhone) => {
+    if (!rawPhone || typeof rawPhone !== 'string') return '+91 99887 76655';
+    const cleaned = rawPhone.replace(/^(\+?91\s*)+/g, '').replace(/[^\d]/g, '');
+    if (cleaned.length === 10) {
+      return `+91 ${cleaned.slice(0, 5)} ${cleaned.slice(5)}`;
+    }
+    return `+91 ${cleaned}`;
+  };
+
+  // Auto-detect real device GPS coordinates for NGO shelter on mount
+  const handleDetectNgoGps = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(4));
+        const lng = Number(pos.coords.longitude.toFixed(4));
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const sub = data.address?.suburb || data.address?.neighbourhood || data.address?.road || '';
+            const city = data.address?.city || data.address?.town || data.address?.state_district || '';
+            const addr = sub && city ? `${sub}, ${city}` : data.display_name?.split(',').slice(0, 3).join(', ') || 'Shelter Location';
+            setCustomNgoCoords({ latitude: lat, longitude: lng, address: addr });
+            api.patch('/auth/me/location', { latitude: lat, longitude: lng, address: addr, locality: sub || city, city }).catch(() => {});
+            return;
+          }
+        } catch (e) {}
+        setCustomNgoCoords({ latitude: lat, longitude: lng, address: `Device GPS (${lat}, ${lng})` });
+      },
+      () => {},
+      { timeout: 8000, enableHighAccuracy: true }
+    );
+  };
+
+  const handleResendSmsOtp = async (listingId) => {
+    try {
+      setResendingSmsId(listingId);
+      const res = await api.post(`/food/${listingId}/resend-sms-otp`);
+      if (res.data?.success) {
+        setSmsToast(`📲 SMS Handover OTP ${res.data.deliveryOtp} sent to ${formatPhone(res.data.smsDispatch?.phone)}!`);
+        await fetchClaims();
+        setTimeout(() => setSmsToast(''), 4500);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to dispatch SMS notification.');
+    } finally {
+      setResendingSmsId(null);
+    }
+  };
 
   const fetchClaims = async () => {
     try {
@@ -61,6 +121,8 @@ const NgoDashboard = () => {
 
   useEffect(() => {
     fetchClaims();
+    // Auto detect NGO device location on load
+    handleDetectNgoGps();
   }, []);
 
   const handleUpdateStatus = async (listingId, newStatus) => {
@@ -229,6 +291,27 @@ const NgoDashboard = () => {
             {/* TAB 1: ACTIVE PICKUPS LIST */}
             {activeTab === 'active' && (
               <div>
+                {smsToast && (
+                  <div
+                    style={{
+                      backgroundColor: '#DCFCE7',
+                      color: '#166534',
+                      border: '1.5px solid #86EFAC',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '0.85rem 1.25rem',
+                      marginBottom: '1.25rem',
+                      fontWeight: 700,
+                      fontSize: '0.9rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.6rem',
+                      boxShadow: 'var(--shadow-sm)',
+                    }}
+                  >
+                    <Smartphone size={20} color="#166534" />
+                    <span>{smsToast}</span>
+                  </div>
+                )}
                 {activePickups.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
                     {activePickups.map((item) => {
@@ -492,9 +575,32 @@ const NgoDashboard = () => {
                                     {item.otpVerified ? '✓ Verified by Rider' : '🔑 Required at Dropoff'}
                                   </span>
                                 </div>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                                  <MessageSquare size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                                  Automatically sent via SMS to NGO phone: <strong>+91 {user?.phone || '99887 76655'}</strong>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                  <Smartphone size={13} style={{ color: '#2563EB', display: 'inline' }} />
+                                  <span>
+                                    Dispatched via SMS to NGO phone: <strong>{formatPhone(item.smsDispatch?.phone || user?.phone)}</strong>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResendSmsOtp(item._id)}
+                                    disabled={resendingSmsId === item._id || item.otpVerified}
+                                    style={{
+                                      border: '1px solid #BFDBFE',
+                                      backgroundColor: '#EFF6FF',
+                                      color: '#1D4ED8',
+                                      borderRadius: '4px',
+                                      padding: '0.15rem 0.45rem',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      cursor: item.otpVerified ? 'not-allowed' : 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '3px',
+                                    }}
+                                  >
+                                    {resendingSmsId === item._id ? <Loader2 size={11} className="spin-animate" /> : <Send size={11} />}
+                                    {resendingSmsId === item._id ? 'Sending...' : 'Resend SMS'}
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -518,7 +624,7 @@ const NgoDashboard = () => {
                                     display: 'inline-block',
                                   }}
                                 >
-                                  {item.deliveryOtp || '8291'}
+                                  {item.deliveryOtp || '----'}
                                 </span>
                               </div>
                             </div>
@@ -660,14 +766,14 @@ const NgoDashboard = () => {
                               customNgoCoords?.latitude ||
                               selectedMission.deliveryCoordinates?.latitude ||
                               user?.currentLocation?.latitude ||
-                              12.9121,
+                              (selectedMission.pickupCoordinates?.latitude ? selectedMission.pickupCoordinates.latitude + 0.015 : 28.6139),
                             longitude:
                               customNgoCoords?.longitude ||
                               selectedMission.deliveryCoordinates?.longitude ||
                               user?.currentLocation?.longitude ||
-                              77.6446,
-                            name: user?.organizationName,
-                            address: customNgoCoords?.address || `${user?.locality || 'Shelter'}, Bengaluru`,
+                              (selectedMission.pickupCoordinates?.longitude ? selectedMission.pickupCoordinates.longitude + 0.012 : 77.2090),
+                            name: user?.organizationName || 'Shelter',
+                            address: customNgoCoords?.address || selectedMission.deliveryCoordinates?.address || `${user?.locality || 'Shelter'}, ${user?.city || ''}`,
                           }}
                           title={`Live Route Tracking: ${selectedMission.title}`}
                           height="440px"
@@ -889,19 +995,21 @@ const NgoDashboard = () => {
         isOpen={showLocationModal}
         onClose={() => setShowLocationModal(false)}
         initialCoords={
-          customNgoCoords || {
-            latitude: user?.currentLocation?.latitude || 12.9121,
-            longitude: user?.currentLocation?.longitude || 77.6446,
-            address: `${user?.locality || 'Shelter'}, Bengaluru`,
-          }
+          customNgoCoords ||
+          (user?.currentLocation?.latitude ? user.currentLocation : null)
         }
-        title="📍 Set NGO Shelter Location (Google Map / Manual Coordinates)"
+        title="📍 Search Any City or Pick NGO Shelter Location on Map"
         onSelectLocation={(coords) => {
           setCustomNgoCoords({
             latitude: coords.latitude,
             longitude: coords.longitude,
             address: coords.address || 'Custom Shelter Pin',
           });
+          api.patch('/auth/me/location', {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            address: coords.address || 'Custom Shelter Pin',
+          }).catch(() => {});
         }}
       />
     </div>

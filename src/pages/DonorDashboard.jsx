@@ -77,6 +77,8 @@ const DonorDashboard = () => {
 
   useEffect(() => {
     fetchMyDonations();
+    // Automatically detect donor's device GPS on load (removes Bengaluru hardcoded default)
+    handleDetectGps();
   }, []);
 
   const handleDetectGps = () => {
@@ -84,19 +86,44 @@ const DonorDashboard = () => {
       setGpsStatus('Geolocation not supported in this browser.');
       return;
     }
-    setGpsStatus('Acquiring kitchen coordinates...');
+    setGpsStatus('Acquiring current kitchen GPS coordinates...');
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setDonorGps({
-          latitude: Number(pos.coords.latitude.toFixed(4)),
-          longitude: Number(pos.coords.longitude.toFixed(4)),
-        });
-        setGpsStatus(
-          `GPS Acquired: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`
-        );
+      async (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(4));
+        const lng = Number(pos.coords.longitude.toFixed(4));
+        setDonorGps({ latitude: lat, longitude: lng });
+        setManualLat(String(lat));
+        setManualLng(String(lng));
+
+        // Auto reverse geocode to automatically fill locality & address anywhere in India
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.address) {
+              const a = data.address;
+              const sub = a.suburb || a.neighbourhood || a.road || a.commercial || '';
+              const city = a.city || a.town || a.county || a.state_district || '';
+              const detectedLocality = sub || city || 'Local Area';
+              setLocality(detectedLocality);
+              if (!pickupAddress) {
+                setPickupAddress(data.display_name.split(',').slice(0, 3).join(', '));
+              }
+              setGpsStatus(`📍 GPS Detected: ${detectedLocality} (${lat}, ${lng})`);
+              return;
+            }
+          }
+        } catch (e) {
+          // Fallback gracefully
+        }
+
+        setGpsStatus(`📍 GPS Acquired: ${lat}, ${lng}`);
       },
       (err) => {
-        setGpsStatus('Using locality approximation.');
+        setGpsStatus('Click "Search on Map" or type manual coordinates.');
       },
       { timeout: 8000, enableHighAccuracy: true }
     );
@@ -178,9 +205,13 @@ const DonorDashboard = () => {
     setDonorGps({ latitude: loc.latitude, longitude: loc.longitude });
     setManualLat(String(loc.latitude));
     setManualLng(String(loc.longitude));
-    setGpsStatus(`Google Map Pin: ${loc.latitude}, ${loc.longitude}`);
-    if (loc.address && !pickupAddress) {
+    setGpsStatus(`📍 Map Location Set: ${loc.latitude}, ${loc.longitude}`);
+    if (loc.address) {
       setPickupAddress(loc.address);
+      const parts = loc.address.split(',');
+      if (parts.length > 0 && parts[0].trim()) {
+        setLocality(parts[0].trim());
+      }
     }
   };
 
@@ -492,7 +523,7 @@ const DonorDashboard = () => {
                       className="btn btn-primary btn-sm"
                     >
                       <MapPin size={14} />
-                      Set via Google Map
+                      🗺️ Search & Pick on Map
                     </button>
                     <button
                       type="button"
@@ -787,8 +818,8 @@ const DonorDashboard = () => {
       <LocationPickerModal
         isOpen={showLocationModal}
         onClose={() => setShowLocationModal(false)}
-        initialCoords={donorGps || { latitude: 12.9784, longitude: 77.6408 }}
-        title="📍 Set Kitchen Location (Google Map / Manual Coordinates)"
+        initialCoords={donorGps || null}
+        title="📍 Search Any City or Pick Kitchen Location on Map"
         onSelectLocation={handleSelectKitchenLocation}
       />
     </div>

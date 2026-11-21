@@ -29,6 +29,8 @@ import {
   UploadCloud,
   Lock,
   RotateCw,
+  Smartphone,
+  Send,
 } from 'lucide-react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
@@ -53,7 +55,7 @@ const DeliveryDashboard = () => {
 
   // Driver GPS & Manual Location State
   const [liveLocation, setLiveLocation] = useState(
-    user?.currentLocation || { latitude: 12.975, longitude: 77.635 }
+    user?.currentLocation?.latitude ? user.currentLocation : null
   );
   const [isAvailable, setIsAvailable] = useState(user?.isAvailable ?? true);
   const [isManualOverride, setIsManualOverride] = useState(false);
@@ -67,6 +69,8 @@ const DeliveryDashboard = () => {
   const [otpInputs, setOtpInputs] = useState({});
   const [otpErrors, setOtpErrors] = useState({});
   const [verifyingOtpId, setVerifyingOtpId] = useState(null);
+  const [resendingRiderSmsId, setResendingRiderSmsId] = useState(null);
+  const [riderSmsSuccess, setRiderSmsSuccess] = useState({});
 
   const [paymentMethods, setPaymentMethods] = useState({}); // 'UPI' or 'Cash'
   const [confirmingPaymentId, setConfirmingPaymentId] = useState(null);
@@ -185,12 +189,12 @@ const DeliveryDashboard = () => {
 
   // Quick 1-click snap near donor kitchen (for instant demonstration of local turnaround)
   const handleSnapNearDonor = (donorCoords) => {
-    const lat = donorCoords?.latitude ? Number((donorCoords.latitude + 0.012).toFixed(4)) : 12.945;
-    const lng = donorCoords?.longitude ? Number((donorCoords.longitude - 0.008).toFixed(4)) : 77.632;
+    const lat = donorCoords?.latitude ? Number((donorCoords.latitude + 0.012).toFixed(4)) : 28.625;
+    const lng = donorCoords?.longitude ? Number((donorCoords.longitude - 0.008).toFixed(4)) : 77.218;
     handleApplyLocation({
       latitude: lat,
       longitude: lng,
-      address: 'Koramangala Hub (~2.2 km from kitchen)',
+      address: donorCoords ? 'Local Delivery Partner Zone (~2.2 km from kitchen)' : 'Central City Delivery Hub (~2.2 km away)',
     });
   };
 
@@ -271,6 +275,27 @@ const DeliveryDashboard = () => {
       }));
     } finally {
       setVerifyingOtpId(null);
+    }
+  };
+
+  // Helper: Resend SMS OTP to recipient NGO on rider request
+  const handleResendSmsToNgo = async (missionId) => {
+    try {
+      setResendingRiderSmsId(missionId);
+      const res = await api.post(`/delivery/${missionId}/resend-sms-otp`);
+      if (res.data?.success) {
+        setRiderSmsSuccess((prev) => ({
+          ...prev,
+          [missionId]: `📲 SMS OTP resent to recipient NGO (${res.data.smsDispatch?.phone || 'NGO Mobile'})!`,
+        }));
+        setTimeout(() => {
+          setRiderSmsSuccess((prev) => ({ ...prev, [missionId]: '' }));
+        }, 5000);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to dispatch SMS to recipient NGO.');
+    } finally {
+      setResendingRiderSmsId(null);
     }
   };
 
@@ -899,7 +924,7 @@ const DeliveryDashboard = () => {
                           </div>
                           <div style={{ fontSize: '0.85rem', color: '#4B5563', marginBottom: '0.65rem' }}>
                             <MapPin size={13} style={{ display: 'inline', marginRight: '4px', color: '#2563EB' }} />
-                            {mission.deliveryCoordinates?.address || `${mission.claimedBy?.locality}, Bengaluru`}
+                            {mission.deliveryCoordinates?.address || (mission.claimedBy?.city ? `${mission.claimedBy?.locality}, ${mission.claimedBy?.city}` : (mission.claimedBy?.locality || 'Shelter Location'))}
                           </div>
                           <div>
                             <a
@@ -1009,7 +1034,7 @@ const DeliveryDashboard = () => {
                                 <input
                                   type="text"
                                   className="form-input"
-                                  placeholder="Enter 4-Digit OTP (e.g. 8291)"
+                                  placeholder="Enter 4-Digit OTP"
                                   maxLength={4}
                                   value={otpInputs[mission._id] || ''}
                                   onChange={(e) =>
@@ -1038,6 +1063,40 @@ const DeliveryDashboard = () => {
                                 </button>
                               </div>
 
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '0.78rem', color: '#1E40AF', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <Smartphone size={13} style={{ color: '#2563EB' }} />
+                                  Sent to NGO via SMS ({mission.claimedBy?.phone || '+91 99887 76655'})
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleResendSmsToNgo(mission._id)}
+                                  disabled={resendingRiderSmsId === mission._id}
+                                  style={{
+                                    border: '1px solid #BFDBFE',
+                                    backgroundColor: '#EFF6FF',
+                                    color: '#1D4ED8',
+                                    borderRadius: '4px',
+                                    padding: '0.15rem 0.5rem',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                  }}
+                                >
+                                  <Send size={11} />
+                                  {resendingRiderSmsId === mission._id ? 'Dispatching...' : 'Resend SMS to NGO'}
+                                </button>
+                              </div>
+
+                              {riderSmsSuccess[mission._id] && (
+                                <div style={{ color: '#059669', fontSize: '0.8rem', fontWeight: 700, marginTop: '0.35rem' }}>
+                                  {riderSmsSuccess[mission._id]}
+                                </div>
+                              )}
+
                               {otpErrors[mission._id] && (
                                 <div style={{ color: '#DC2626', fontSize: '0.8rem', fontWeight: 600, marginTop: '0.5rem' }}>
                                   ⚠️ {otpErrors[mission._id]}
@@ -1052,7 +1111,7 @@ const DeliveryDashboard = () => {
                             <div style={{ fontSize: '0.85rem', color: '#065F46', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                               <span>Authenticated with OTP:</span>
                               <strong style={{ fontFamily: 'monospace', fontSize: '1rem', letterSpacing: '0.15em' }}>
-                                {mission.deliveryOtp || '8291'}
+                                {mission.deliveryOtp || '----'}
                               </strong>
                               <span>• Payment stage is now unlocked!</span>
                             </div>
