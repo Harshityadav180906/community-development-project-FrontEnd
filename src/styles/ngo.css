@@ -1,0 +1,134 @@
+.ngo-overview-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.pickup-card {
+  background-color: #FFFFFF;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  border-left: 4px solid var(--accent);
+}
+
+.pickup-card.picked-up {
+  border-left-color: #2563EB;
+}
+
+.pickup-card.completed {
+  border-left-color: #059669;
+}
+
+.pickup-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.pickup-title-group h3 {
+  font-size: 1.25rem;
+  color: var(--primary-deep);
+  margin-bottom: 0.35rem;
+}
+
+.donor-details-box {
+  background-color: var(--bg-cream);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.donor-box-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary-deep);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.donor-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.donor-info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.donor-info-item .info-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.donor-info-item .info-value {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.donor-info-item a.info-phone {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.donor-info-item a.info-phone:hover {
+  text-decoration: underline;
+}
+
+.pickup-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.status-timeline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.timeline-step {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.timeline-step.active {
+  font-weight: 700;
+  color: var(--primary-deep);
+}
+
+.timeline-arrow {
+  color: var(--text-subtle);
+}
+
+@media (max-width: 900px) {
+  .ngo-overview-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .donor-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
