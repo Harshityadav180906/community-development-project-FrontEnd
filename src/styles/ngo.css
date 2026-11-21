@@ -131,4 +131,17 @@
   .donor-info-grid {
     grid-template-columns: 1fr;
   }
+
+  .pickup-card {
+    padding: 1.15rem;
+  }
+
+  .pickup-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .status-timeline {
+    flex-wrap: wrap;
+  }
 }

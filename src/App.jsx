@@ -11,6 +11,7 @@ import FoodFeedPage from './pages/FoodFeedPage';
 import DonorDashboard from './pages/DonorDashboard';
 import NgoDashboard from './pages/NgoDashboard';
 import DeliveryDashboard from './pages/DeliveryDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -50,6 +51,16 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['delivery']}>
                 <DeliveryDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Protected Super Admin Dashboard */}
+          <Route
+            path="/dashboard/admin"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
               </ProtectedRoute>
             }
           />

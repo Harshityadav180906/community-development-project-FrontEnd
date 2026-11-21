@@ -17,6 +17,9 @@ import {
   RotateCw,
   LocateFixed,
   AlertCircle,
+  KeyRound,
+  ShieldCheck,
+  MessageSquare,
 } from 'lucide-react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
@@ -384,6 +387,86 @@ const NgoDashboard = () => {
                             </div>
                           </div>
 
+                          {/* Handover Security OTP Box for Drop-off Verification */}
+                          <div
+                            style={{
+                              backgroundColor: item.otpVerified ? '#ECFDF5' : '#EFF6FF',
+                              border: `1.5px solid ${item.otpVerified ? '#A7F3D0' : '#BFDBFE'}`,
+                              borderRadius: 'var(--radius-md)',
+                              padding: '1rem 1.25rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: '1rem',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div
+                                style={{
+                                  width: '42px',
+                                  height: '42px',
+                                  borderRadius: '50%',
+                                  backgroundColor: item.otpVerified ? '#059669' : '#2563EB',
+                                  color: '#FFFFFF',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <KeyRound size={20} />
+                              </div>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                  <strong style={{ fontSize: '0.95rem', color: item.otpVerified ? '#065F46' : '#1E3A8A' }}>
+                                    Delivery Handover OTP for Rider
+                                  </strong>
+                                  <span
+                                    style={{
+                                      fontSize: '0.75rem',
+                                      fontWeight: 700,
+                                      padding: '0.15rem 0.5rem',
+                                      borderRadius: 'var(--radius-full)',
+                                      backgroundColor: item.otpVerified ? '#DCFCE7' : '#DBEAFE',
+                                      color: item.otpVerified ? '#166534' : '#1E40AF',
+                                    }}
+                                  >
+                                    {item.otpVerified ? '✓ Verified by Rider' : '🔑 Required at Dropoff'}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                                  <MessageSquare size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                                  Automatically sent via SMS to NGO phone: <strong>+91 {user?.phone || '99887 76655'}</strong>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', fontWeight: 700 }}>
+                                  Share with Rider:
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '1.4rem',
+                                    fontWeight: 900,
+                                    fontFamily: 'monospace',
+                                    letterSpacing: '0.25em',
+                                    backgroundColor: item.otpVerified ? '#D1FAE5' : '#FFFFFF',
+                                    color: item.otpVerified ? '#047857' : '#1D4ED8',
+                                    padding: '0.3rem 0.85rem',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: `1.5px dashed ${item.otpVerified ? '#10B981' : '#3B82F6'}`,
+                                    display: 'inline-block',
+                                  }}
+                                >
+                                  {item.deliveryOtp || '8291'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
                           {/* Pickup Action Progress */}
                           <div className="pickup-actions-row">
                             <div className="status-timeline">
@@ -578,13 +661,36 @@ const NgoDashboard = () => {
                               </div>
                             </div>
 
-                            <a
-                              href={`tel:${selectedMission.assignedDriver.phone}`}
-                              className="btn btn-accent btn-sm"
-                            >
-                              <Phone size={14} />
-                              Call Driver ({selectedMission.assignedDriver.phone})
-                            </a>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <div
+                                  style={{
+                                    backgroundColor: selectedMission.otpVerified ? '#D1FAE5' : '#DBEAFE',
+                                    border: `1px solid ${selectedMission.otpVerified ? '#10B981' : '#3B82F6'}`,
+                                    padding: '0.35rem 0.75rem',
+                                    borderRadius: 'var(--radius-sm)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    fontSize: '0.8rem',
+                                  }}
+                                >
+                                  <KeyRound size={14} style={{ color: selectedMission.otpVerified ? '#047857' : '#1D4ED8' }} />
+                                  <span>
+                                    Handover OTP:{' '}
+                                    <strong style={{ fontFamily: 'monospace', letterSpacing: '0.15em', fontSize: '0.95rem' }}>
+                                      {selectedMission.deliveryOtp || '8291'}
+                                    </strong>{' '}
+                                    ({selectedMission.otpVerified ? 'Verified' : 'SMS sent to NGO'})
+                                  </span>
+                                </div>
+                                <a
+                                  href={`tel:${selectedMission.assignedDriver.phone}`}
+                                  className="btn btn-accent btn-sm"
+                                >
+                                  <Phone size={14} />
+                                  Call Driver ({selectedMission.assignedDriver.phone})
+                                </a>
+                              </div>
                           </div>
                         ) : (
                           <div

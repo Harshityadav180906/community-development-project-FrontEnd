@@ -89,6 +89,7 @@ export const AuthProvider = ({ children }) => {
         isDonor: user?.role === 'donor',
         isNgo: user?.role === 'ngo',
         isDelivery: user?.role === 'delivery',
+        isAdmin: user?.role === 'admin',
         login,
         register,
         logout,

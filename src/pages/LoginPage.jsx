@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogIn, Eye, EyeOff, AlertCircle, Sparkles, Building, Users, CheckCircle2, Database, Truck } from 'lucide-react';
+import { LogIn, Eye, EyeOff, AlertCircle, Sparkles, Building, Users, CheckCircle2, Database, Truck, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 
@@ -44,6 +44,8 @@ const LoginPage = () => {
         navigate('/dashboard/ngo');
       } else if (result.user.role === 'delivery') {
         navigate('/dashboard/delivery');
+      } else if (result.user.role === 'admin') {
+        navigate('/dashboard/admin');
       } else {
         navigate('/');
       }
@@ -164,6 +166,19 @@ const LoginPage = () => {
                 <span className="demo-role-name">Delivery Rider</span>
               </div>
               <span className="demo-email">driver@bhojansetu.org</span>
+            </button>
+
+            <button
+              type="button"
+              className="demo-btn"
+              onClick={() => handleDemoFill('admin@bhojansetu.org', 'admin')}
+              title="Sign in as Super Admin"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <ShieldCheck size={13} style={{ color: '#1E3A8A' }} />
+                <span className="demo-role-name">Super Admin 👑</span>
+              </div>
+              <span className="demo-email">admin@bhojansetu.org</span>
             </button>
           </div>
         </div>
